@@ -1,42 +1,52 @@
+// ChatLayout.tsx
 import React, { useEffect, useState } from "react";
 import ChatService from "../../lib/ChatService";
 
-// Define the props interface to accept "userToken"
 interface ChatLayoutProps {
   userToken: string;
-  userName: string;       
-  onLogout: () => void;   
+  userName: string;
+  onLogout: () => void;
 }
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }) => {
-  // We no longer hard-code token here; we just receive it from props.
-  // const [token] = useState("c89ee220-37fc-4781-ae07-24fcaf91281a");
   const token = userToken;
 
-  // Left side data
   const [conversations, setConversations] = useState<any[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-
-  // Right side (chat messages)
   const [currentConversation, setCurrentConversation] = useState<any | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [newConversationName, setNewConversationName] = useState("");
 
-  // Fetch all conversations on mount (or when token changes)
+  // Convert "userName" into short initials
+  const avatarInitials = userName
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
   useEffect(() => {
     if (!token) return;
+    fetchConversationsFromServer();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  // Helper to fetch from the server, then store in localStorage (optional)
+  const fetchConversationsFromServer = () => {
     ChatService.getConversations(token)
       .then((data) => {
         setConversations(data);
-        // Optionally auto-select the first conversation
+        // Optionally store them for fast re-load if same user logs out/in
+        localStorage.setItem(`conversations_${token}`, JSON.stringify(data));
+
         if (data.length > 0) {
           setSelectedConversationId(data[0].id);
         }
       })
       .catch((err) => console.error("Failed to fetch conversations", err));
-  }, [token]);
+  };
 
-  // Whenever the selectedConversationId changes, load that conversation’s details
+  // Whenever the user selects a conversation, fetch its details
   useEffect(() => {
     if (selectedConversationId && token) {
       ChatService.getConversation(token, selectedConversationId)
@@ -47,67 +57,74 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
     }
   }, [selectedConversationId, token]);
 
-  // Handle sending new message
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversationId) return;
-    try {
-      await ChatService.sendMessage(token, selectedConversationId, newMessage);
-      setNewMessage("");
-      // re-fetch conversation to show the newly added message
-      const updated = await ChatService.getConversation(token, selectedConversationId);
-      setCurrentConversation(updated);
-    } catch (err) {
-      console.error("Failed to send message", err);
-    }
-  };
-
-  // Handle creating a new conversation
+  // Creating a new conversation
   const handleCreateConversation = async () => {
     if (!newConversationName.trim()) return;
     try {
       const newConv = await ChatService.createConversation(token, newConversationName);
-      setConversations((prev) => [...prev, newConv]);
+      setConversations((prev) => {
+        const updated = [...prev, newConv];
+        localStorage.setItem(`conversations_${token}`, JSON.stringify(updated));
+        return updated;
+      });
       setNewConversationName("");
-      // Optionally select the newly created conversation
       setSelectedConversationId(newConv.id);
     } catch (err) {
       console.error("Failed to create conversation", err);
     }
   };
 
-  // Example: if userName = "user1", we’ll display "U1" in the avatar bubble
-  const avatarInitials = userName
-    .split(" ")
-    .map((word) => word[0]) // first letter of each part
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
+  // Sending a message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversationId) return;
+    try {
+      await ChatService.sendMessage(token, selectedConversationId, newMessage);
+      setNewMessage("");
+  
+      const updated = await ChatService.getConversation(token, selectedConversationId);
+      setCurrentConversation(updated);
+      setConversations((prev) => {
+        const newArr = prev.map((c) => (c.id === updated.id ? updated : c));
+        localStorage.setItem(`conversations_${token}`, JSON.stringify(newArr));
+        return newArr;
+      });
+
+      setTimeout(async () => {
+        const updatedAgain = await ChatService.getConversation(token, selectedConversationId);
+        setCurrentConversation(updatedAgain);
+  
+        setConversations((prev) => {
+          const newArr = prev.map((c) => (c.id === updatedAgain.id ? updatedAgain : c));
+          localStorage.setItem(`conversations_${token}`, JSON.stringify(newArr));
+          return newArr;
+        });
+      }, 3000);
+  
+    } catch (err) {
+      console.error("Failed to send message", err);
+    }
+  };
 
   return (
     <div className="flex h-screen w-full antialiased text-gray-800">
       <div className="md:flex md:flex-row h-full w-full overflow-x-hidden">
-
+        
         {/* LEFT SIDEBAR */}
         <div className="md:flex md:flex-col py-6 px-4 md:w-64 bg-white flex-shrink-0">
+          {/* ... top header ... */}
           <div className="md:flex flex-row items-center justify-center h-12 w-full">
             <h3 className="ml-2 font-bold text-2xl">ChatSpace</h3>
           </div>
 
-          {/* User Info (static for demonstration) */}
+          {/* User info */}
           <div className="flex md:flex-col items-center gap-2 bg-indigo-100 border border-gray-200 mt-2 w-full py-4 px-4 rounded-lg">
             <div className="flex items-center justify-center h-12 w-12 text-lg md:text-2xl font-bold bg-indigo-200 rounded-full">
               {avatarInitials}
             </div>
-            <div className="text-xs md:text-sm font-semibold mt-2"> 
-              {userName}
-            </div>
+            <div className="text-xs md:text-sm font-semibold mt-2">{userName}</div>
             <p className="text-xs mt-2">{new Date().toLocaleDateString()}</p>
 
-            {/* Logout Button */}
-            <button
-              onClick={onLogout}
-              className="mt-2 bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600"
-            >
+            <button onClick={onLogout} className="mt-2 bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600">
               Log Out
             </button>
           </div>
@@ -125,10 +142,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
               {conversations.map((conv) => (
                 <button
                   key={conv.id}
+                  onClick={() => setSelectedConversationId(conv.id)}
                   className={`flex flex-row items-center hover:bg-gray-100 rounded-xl p-2 ${
                     conv.id === selectedConversationId ? "bg-gray-200" : ""
                   }`}
-                  onClick={() => setSelectedConversationId(conv.id)}
                 >
                   <div className="flex items-center justify-center h-8 w-8 bg-indigo-200 rounded-full">
                     {conv.attributes.name.charAt(0).toUpperCase()}
@@ -179,11 +196,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                       {currentConversation.attributes.messages?.map((msg: any) => {
                         const isMe = msg.author !== "AI";
                         return isMe ? (
-                          // This user's message
-                          <div
-                            key={msg.id}
-                            className="col-start-6 col-end-13 p-3 rounded-lg"
-                          >
+                          // User's messages on the right
+                          <div key={msg.id} className="col-start-6 col-end-13 p-3 rounded-lg">
                             <div className="flex items-center justify-start flex-row-reverse">
                               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
                                 Me
@@ -194,11 +208,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                             </div>
                           </div>
                         ) : (
-                          // AI or other user's message
-                          <div
-                            key={msg.id}
-                            className="col-start-1 col-end-8 p-3 rounded-lg"
-                          >
+                          // AI or other's messages on the left
+                          <div key={msg.id} className="col-start-1 col-end-8 p-3 rounded-lg">
                             <div className="flex flex-row items-center">
                               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
                                 AI
@@ -224,6 +235,12 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                         placeholder="Type a message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();      
+                            handleSendMessage();  
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -246,7 +263,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                             strokeLinejoin="round"
                             strokeWidth="2"
                             d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                          ></path>
+                          />
                         </svg>
                       </span>
                     </button>

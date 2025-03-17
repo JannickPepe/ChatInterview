@@ -9,24 +9,35 @@ import Login from "../login/Login";
 
 export function HeroRevealComponent() {
   const [showChat, setShowChat] = useState(false);
-  // 1. On initial load, read token & username from localStorage
+  // On init, read token/user from localStorage in case they were saved from a previous session
   const storedToken = localStorage.getItem("token");
-  const storedUsername = localStorage.getItem("username") ?? "";
+  const storedUserName = localStorage.getItem("username") ?? "";
 
-  // 2. Initialize state with stored values (if any)
   const [token, setToken] = useState<string | null>(storedToken);
-  const [username, setUsername] = useState<string>(storedUsername);
+  const [username, setUsername] = useState<string>(storedUserName);
 
-  // 3. Whenever user logs in, store in localStorage + set state
+  // Called by <Login> after successful authentication
   const handleLogin = (newToken: string, userName: string) => {
+    // If there's an existing user, remove their old conversation data
+    if (token && token !== newToken) {
+      // We’re switching from one user to another
+      localStorage.removeItem(`conversations_${token}`);
+    }
+
+    // Store new user token in state + localStorage
     setToken(newToken);
     setUsername(userName);
     localStorage.setItem("token", newToken);
     localStorage.setItem("username", userName);
   };
 
-  // 4. Logout removes from localStorage and resets state
+  // Clear everything on logout
   const handleLogout = () => {
+    // Remove local data specific to the existing token
+    if (token) {
+      localStorage.removeItem(`conversations_${token}`);
+    }
+
     setToken(null);
     setUsername("");
     localStorage.removeItem("token");

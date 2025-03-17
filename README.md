@@ -42,7 +42,7 @@ And access it on http://localhost:3000 and the API on http://localhost:3001/docs
 - Initial start: 16/03 20:50
 - Slut 16/03 22:24
 
-Comments: Since it is CRA setup it kinda has legacy peers to it, when you are going to install Tailwindcss and Shadcn. So other config can happen than what the docs are showing, since they want React with Vite.
+Comments: Since it is CRA setup it kinda has legacy peers to it, when you are going to install Tailwindcss and Shadcn. So other config was needed than what the docs are showing, since they want React with Vite. Also setup a better tsconfig.json file for more typescript rules and a better custom.d.ts to handle different images, icons and svg etc
 
 - 2nd start: 17/03 - 10:30
 - 2nd slut:  17/03 - 12:50
@@ -52,9 +52,13 @@ Comments: UI layout for Landing Hero section and Chat UI layout is now done for 
 - 3nd start: 17/03 - 13:30
 - 3nd slut:  17/03 - 15:05 
 
-Comments: Main requirements
+Comments: Main requirements done
 
 - 4nd start: 17/03 - 15:06
 - 4nd slut:  17/03 -  
 
-Comments: Instead of passing in the browser log a new token, setup login for the hardcoded cred in the server
+Comments: 
+1. Instead of passing in the browser log a new token, setup login for the hardcoded cred in the server.
+2. As well with setting up localstorage, so you dont have to login again with either closing the Chat layour or refreshing the broswer / closing project - Echanced it.
+3. Letting a message reply come after you wrote a comment - before it was you needed to refresh state
+4. Made more resonses from AI in random order

@@ -145,11 +145,31 @@ function formatMessage(message) {
 function generateAIResponse(conversation) {
   const lastMessage = conversation.messages[conversation.messages.length - 1];
   if (lastMessage.author === "AI") return;
+
+  // 1) Define an array of possible responses
+  const possibleReplies = [
+    "AI: I'm sorry, I don't understand. Can you please rephrase that?",
+    "AI: That's really interesting! Tell me more.",
+    "AI: Hmm, let me think about that for a moment...",
+    "AI: Fascinating perspective! What's your next thought?",
+    "AI: Could you elaborate on that?",
+    "AI: I see. Is there anything else you'd like to discuss?",
+    "AI: Interesting! How does that make you feel?",
+    "AI: Let me check my notes... Actually, I'd love to hear more details.",
+  ];
+
+  // 2) Pick one at random
+  const randomIndex = Math.floor(Math.random() * possibleReplies.length);
+  const randomReply = possibleReplies[randomIndex];
+
+  // 3) Create the AI message using a random reply
   const aiMessage = {
     id: crypto.randomUUID(),
-    text: "AI: I'm sorry, I don't understand. Can you please rephrase that?",
+    text: randomReply,
     author: "AI",
   };
+
+  // 4) Push it into conversation messages
   conversation.messages.push(aiMessage);
 }
 
