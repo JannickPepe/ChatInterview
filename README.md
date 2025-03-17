@@ -39,8 +39,8 @@ And access it on http://localhost:3000 and the API on http://localhost:3001/docs
 
 ## Documentation
 
-- Initial start: 16/03 20:50
-- Slut 16/03 22:24
+- Initial start: 16/03 - 20:30
+- Slut: 16/03 - 22:24
 
 Comments: Since it is CRA setup it kinda has legacy peers to it, when you are going to install Tailwindcss and Shadcn. So other config was needed than what the docs are showing, since they want React with Vite. Also setup a better tsconfig.json file for more typescript rules and a better custom.d.ts to handle different images, icons and svg etc
 
@@ -52,10 +52,10 @@ Comments: UI layout for Landing Hero section and Chat UI layout is now done for 
 - 3nd start: 17/03 - 13:30
 - 3nd slut:  17/03 - 15:05 
 
-Comments: Main requirements done
+Comments: Main requirements are done - Bonus features will come after
 
-- 4nd start: 17/03 - 15:06
-- 4nd slut:  17/03 -  
+- 4nd start: 17/03 - 15:00
+- 4nd slut:  17/03 - 17:32 
 
 Comments: 
 1. Instead of passing in the browser log a new token, setup login for the hardcoded cred in the server.
@@ -65,6 +65,9 @@ Comments:
 5. New login component
 6. Jest testing which went successfull
 
-Conclusion: 
+## Conclusion: 
 1. Add ons - Delete convo, edit convo, saving convos and chat after closing everything down, archived conversations / active conversations 
 2. CRA gives a lot of trouble if you want to persist using it while making eveyrthing stick together while working optional
+
+## Tid 
+I alt med bonus features: Cirka 11 timer
