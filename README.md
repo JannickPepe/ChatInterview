@@ -62,3 +62,7 @@ Comments:
 2. As well with setting up localstorage, so you dont have to login again with either closing the Chat layour or refreshing the broswer / closing project - Echanced it.
 3. Letting a message reply come after you wrote a comment - before it was you needed to refresh state
 4. Made more resonses from AI in random order
+5. New login component
+
+Conclusion: 
+1. Add ons - Delete convo, edit convo, saving convos and chat after closing everything down, archived conversations / active conversations 

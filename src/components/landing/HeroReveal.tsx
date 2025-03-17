@@ -5,7 +5,7 @@ import { TitleBadgeComponent } from "./TitleBadge";
 import GlobalButton from "../GlobalButton";
 import { ChatCircleComponent } from "./ChatCircles";
 import ChatLayout from "../chat/ChatLayout";
-import Login from "../login/Login";
+import { NewLoginComponent } from "../login/NewLogin";
 
 export function HeroRevealComponent() {
   const [showChat, setShowChat] = useState(false);
@@ -56,7 +56,7 @@ export function HeroRevealComponent() {
               onLogout={handleLogout}
             />
           ) : (
-            <Login onLogin={handleLogin} />
+            <NewLoginComponent onLogin={handleLogin} />
           )}
 
           <button
