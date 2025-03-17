@@ -25,7 +25,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["node", "react", "react-dom"]  
+    "types": ["node", "react", "react-dom", "jest"]  
   },
   "include": ["src", "custom.d.ts"],
   "exclude": ["node_modules", "dist", "build"]

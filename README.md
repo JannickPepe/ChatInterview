@@ -63,6 +63,8 @@ Comments:
 3. Letting a message reply come after you wrote a comment - before it was you needed to refresh state
 4. Made more resonses from AI in random order
 5. New login component
+6. Jest testing which went successfull
 
 Conclusion: 
 1. Add ons - Delete convo, edit convo, saving convos and chat after closing everything down, archived conversations / active conversations 
+2. CRA gives a lot of trouble if you want to persist using it while making eveyrthing stick together while working optional
