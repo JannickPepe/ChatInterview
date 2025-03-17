@@ -9,32 +9,45 @@ import Login from "../login/Login";
 
 export function HeroRevealComponent() {
   const [showChat, setShowChat] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [username, setUsername] = useState<string>("");
+  // 1. On initial load, read token & username from localStorage
+  const storedToken = localStorage.getItem("token");
+  const storedUsername = localStorage.getItem("username") ?? "";
 
+  // 2. Initialize state with stored values (if any)
+  const [token, setToken] = useState<string | null>(storedToken);
+  const [username, setUsername] = useState<string>(storedUsername);
+
+  // 3. Whenever user logs in, store in localStorage + set state
   const handleLogin = (newToken: string, userName: string) => {
     setToken(newToken);
     setUsername(userName);
+    localStorage.setItem("token", newToken);
+    localStorage.setItem("username", userName);
   };
 
+  // 4. Logout removes from localStorage and resets state
   const handleLogout = () => {
     setToken(null);
     setUsername("");
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
   };
 
   return (
     <div className="size-full max-w-3xl items-center justify-center overflow-hidden mb-20">
       {showChat ? (
         <div className="fixed inset-0 z-50 bg-white dark:bg-black flex items-center justify-center">
-        {token ? (
-        <ChatLayout
-          userToken={token}
-          userName={username}
-          onLogout={handleLogout}
-        />
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
+          {/* If we have a token, show ChatLayout. Otherwise, show Login. */}
+          {token ? (
+            <ChatLayout
+              userToken={token}
+              userName={username}
+              onLogout={handleLogout}
+            />
+          ) : (
+            <Login onLogin={handleLogin} />
+          )}
+
           <button
             onClick={() => setShowChat(false)}
             className="absolute top-4 right-4 bg-gray-800 text-white p-1 md:p-2 rounded-lg group"
