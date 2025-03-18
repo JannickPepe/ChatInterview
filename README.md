@@ -72,18 +72,27 @@ Comments:
 ## Time 
 I alt med bonus features: Cirka 11 timer
 
-# After Meeting
+## After Meeting
 
 - 5th start: 18/03 - 13:15
 - 5th end:  18/03 - 15:22
 
 Comments: 
-1. Added the Polling setInterval with useRef, so we make it for every created conversation
-2. Better Chatlayout UI
-3. Loading spinner until AI response
-4. Made the useState on RevealHero to still show ChatLayout on refresh browser
-5. Made archive onto convo and delete convo (total number as well)
-6. Updated jest test and passed all 8 now
+1. Added the Polling setInterval with useRef, so we make it for every created conversation.
+2. Better Chatlayout UI.
+3. Loading spinner until AI response.
+4. Made the useState on RevealHero to still show ChatLayout on refresh browser.
+5. Made archive onto convo and delete convo (total number as well).
+6. Updated jest test and passed all 8 now.
+
+- 6th start: 18/03 - 20:40
+- 6th end:  18/03 - 21:36
+
+Comments: 
+1. Added code splitting in ChatLayout, with LeftsideBar and RightsideBar. 
+2. Added React memo and useCallback for the components to ChatLayout.
+3. Made better LeftsideBar UI
+4. Added keyboard on click onto add conversation
 
 ## Time 
-Total with new features after the meeting: 13 hours and 10 minutes.
+Total with new features after the meeting: 14 hours approx.
