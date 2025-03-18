@@ -258,7 +258,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({
 
           <div className="flex flex-col mt-8">
             {/* ACTIVE */}
-            <div className="text-xs font-bold mb-2">Active Conversations</div>
+            <div className="text-xs font-bold mb-2">Active Conversations ({activeConversations.length})</div>
             <div className="flex flex-col space-y-1 mt-2 -mx-2 h-48 overflow-y-auto">
               {activeConversations.map((conv) => (
                 <div
@@ -302,7 +302,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({
             </div>
 
             {/* ARCHIVED */}
-            <div className="text-xs font-bold mt-4 mb-2">Archived Conversations</div>
+            <div className="text-xs font-bold mt-4 mb-2">Archived Conversations ({archivedConversations.length})</div>
             <div className="flex flex-col space-y-1 mt-2 pb-2 -mx-2 h-32 overflow-y-auto">
               {archivedConversations.map((conv) => (
                 <div

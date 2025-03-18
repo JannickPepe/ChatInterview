@@ -171,4 +171,66 @@ describe("ChatService API Tests", () => {
       "Request failed with status 500."
     );
   });
+
+  test("updateConversation archives a conversation", async () => {
+    const conversationId = "123";
+    const mockArchivedResponse = {
+      data: {
+        type: "conversations",
+        id: conversationId,
+        attributes: {
+          name: "Test Conversation",
+          author: "fakeUserId",
+          messages: [],
+          archived: true,
+        },
+      },
+    };
+
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce(
+      Promise.resolve({
+        ok: true,
+        json: async () => mockArchivedResponse,
+      }) as unknown as Response
+    );
+
+    const archivedConv = await ChatService.updateConversation("fakeUserId", conversationId, { archived: true });
+    expect(fetch).toHaveBeenCalledWith(
+      `http://localhost:3001/conversations/${conversationId}`,
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          data: {
+            type: "conversations",
+            id: conversationId,
+            attributes: { archived: true },
+          },
+        }),
+      })
+    );
+    expect(archivedConv.attributes.archived).toBe(true);
+  });
+
+  test("deleteConversation deletes a conversation successfully", async () => {
+    const conversationId = "123";
+
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce(
+      Promise.resolve({
+        ok: true,
+        status: 204, // standard HTTP response for successful DELETE without content
+        json: async () => ({}),
+      }) as unknown as Response
+    );
+
+    await ChatService.deleteConversation("fakeUserId", conversationId);
+    expect(fetch).toHaveBeenCalledWith(
+      `http://localhost:3001/conversations/${conversationId}`,
+      expect.objectContaining({
+        method: "DELETE",
+        headers: expect.objectContaining({
+          Authorization: "fakeUserId",
+        }),
+      })
+    );
+  });
 });
