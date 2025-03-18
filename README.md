@@ -84,3 +84,6 @@ Comments:
 4. Made the useState on RevealHero to still show ChatLayout on refresh browser
 5. Made archive onto convo and delete convo (total number as well)
 6. Updated jest test and passed all 8 now
+
+## Time 
+Total with new features after the meeting: 13 hours and 10 minutes.
