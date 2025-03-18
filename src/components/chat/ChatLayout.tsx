@@ -1,5 +1,4 @@
-// ChatLayout.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ChatService from "../../lib/ChatService";
 
 interface ChatLayoutProps {
@@ -17,7 +16,9 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
   const [newMessage, setNewMessage] = useState("");
   const [newConversationName, setNewConversationName] = useState("");
 
-  // Convert "userName" into short initials
+  // 1) Create a ref to store the interval ID so we can clear it later
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
   const avatarInitials = userName
     .split(" ")
     .map((word) => word[0])
@@ -28,7 +29,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
   useEffect(() => {
     if (!token) return;
     fetchConversationsFromServer();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Helper to fetch from the server, then store in localStorage (optional)
@@ -38,7 +39,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
         setConversations(data);
         // Optionally store them for fast re-load if same user logs out/in
         localStorage.setItem(`conversations_${token}`, JSON.stringify(data));
-
         if (data.length > 0) {
           setSelectedConversationId(data[0].id);
         }
@@ -47,7 +47,13 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
   };
 
   // Whenever the user selects a conversation, fetch its details
+  // Also clear any existing interval so we don't poll the old conversation
   useEffect(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+
     if (selectedConversationId && token) {
       ChatService.getConversation(token, selectedConversationId)
         .then((conv) => setCurrentConversation(conv))
@@ -57,7 +63,15 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
     }
   }, [selectedConversationId, token]);
 
-  // Creating a new conversation
+  // Cleanup when component unmounts: clear any active interval
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
   const handleCreateConversation = async () => {
     if (!newConversationName.trim()) return;
     try {
@@ -74,13 +88,13 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
     }
   };
 
-  // Sending a message
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId) return;
     try {
       await ChatService.sendMessage(token, selectedConversationId, newMessage);
       setNewMessage("");
-  
+
+      // Fetch the conversation right after sending
       const updated = await ChatService.getConversation(token, selectedConversationId);
       setCurrentConversation(updated);
       setConversations((prev) => {
@@ -89,21 +103,37 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
         return newArr;
       });
 
-      setTimeout(async () => {
-        const updatedAgain = await ChatService.getConversation(token, selectedConversationId);
-        setCurrentConversation(updatedAgain);
-  
-        setConversations((prev) => {
-          const newArr = prev.map((c) => (c.id === updatedAgain.id ? updatedAgain : c));
-          localStorage.setItem(`conversations_${token}`, JSON.stringify(newArr));
-          return newArr;
-        });
+      // 2) Clear any existing interval so we don't double-poll
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+
+      // 3) Start a new interval to poll the conversation every 3 seconds
+      pollingRef.current = setInterval(async () => {
+        try {
+          const updatedAgain = await ChatService.getConversation(
+            token,
+            selectedConversationId
+          );
+          setCurrentConversation(updatedAgain);
+
+          setConversations((prev) => {
+            const newArr = prev.map((c) =>
+              c.id === updatedAgain.id ? updatedAgain : c
+            );
+            localStorage.setItem(`conversations_${token}`, JSON.stringify(newArr));
+            return newArr;
+          });
+        } catch (pollErr) {
+          console.error("Polling error:", pollErr);
+        }
       }, 3000);
-  
+
     } catch (err) {
       console.error("Failed to send message", err);
     }
   };
+
 
   return (
     <div className="flex h-screen w-full antialiased text-gray-800">
@@ -111,12 +141,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
         
         {/* LEFT SIDEBAR */}
         <div className="md:flex md:flex-col py-6 px-4 md:w-64 bg-white flex-shrink-0">
-          {/* ... top header ... */}
           <div className="md:flex flex-row items-center justify-center h-12 w-full">
             <h3 className="ml-2 font-bold text-2xl">ChatSpace</h3>
           </div>
 
-          {/* User info */}
           <div className="flex md:flex-col items-center gap-2 bg-indigo-100 border border-gray-200 mt-2 w-full py-4 px-4 rounded-lg">
             <div className="flex items-center justify-center h-12 w-12 text-lg md:text-2xl font-bold bg-indigo-200 rounded-full">
               {avatarInitials}
@@ -129,7 +157,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
             </button>
           </div>
 
-          {/* Conversation List */}
           <div className="flex flex-col mt-8">
             <div className="flex flex-row items-center justify-between text-xs">
               <span className="font-bold">Conversations</span>
@@ -157,7 +184,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
               ))}
             </div>
 
-            {/* Create Conversation */}
             <div className="mt-4">
               <div className="text-xs font-bold mb-2">Create Conversation</div>
               <div className="flex flex-row gap-2">
@@ -184,19 +210,16 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
           <div className="flex flex-col flex-auto flex-shrink-0 rounded-2xl bg-gray-100 h-full p-4">
             {currentConversation ? (
               <>
-                {/* Conversation Header */}
                 <div className="mb-2 font-bold text-lg">
                   {currentConversation.attributes.name}
                 </div>
 
-                {/* Messages */}
                 <div className="flex flex-col h-full overflow-x-auto mb-4">
                   <div className="flex flex-col h-full">
                     <div className="grid grid-cols-12 gap-y-2">
                       {currentConversation.attributes.messages?.map((msg: any) => {
                         const isMe = msg.author !== "AI";
                         return isMe ? (
-                          // User's messages on the right
                           <div key={msg.id} className="col-start-6 col-end-13 p-3 rounded-lg">
                             <div className="flex items-center justify-start flex-row-reverse">
                               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">
@@ -208,7 +231,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                             </div>
                           </div>
                         ) : (
-                          // AI or other's messages on the left
                           <div key={msg.id} className="col-start-1 col-end-8 p-3 rounded-lg">
                             <div className="flex flex-row items-center">
                               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0">

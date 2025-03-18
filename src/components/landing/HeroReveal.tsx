@@ -8,32 +8,34 @@ import ChatLayout from "../chat/ChatLayout";
 import { NewLoginComponent } from "../login/NewLogin";
 
 export function HeroRevealComponent() {
-  const [showChat, setShowChat] = useState(false);
-  // On init, read token/user from localStorage in case they were saved from a previous session
+  // 1) Initialize showChat from localStorage (if present)
+  const [showChat, setShowChat] = useState(() => {
+    return localStorage.getItem("showChat") === "true";
+  });
+
   const storedToken = localStorage.getItem("token");
   const storedUserName = localStorage.getItem("username") ?? "";
 
   const [token, setToken] = useState<string | null>(storedToken);
   const [username, setUsername] = useState<string>(storedUserName);
 
-  // Called by <Login> after successful authentication
   const handleLogin = (newToken: string, userName: string) => {
-    // If there's an existing user, remove their old conversation data
     if (token && token !== newToken) {
-      // We’re switching from one user to another
       localStorage.removeItem(`conversations_${token}`);
     }
 
-    // Store new user token in state + localStorage
     setToken(newToken);
     setUsername(userName);
+
     localStorage.setItem("token", newToken);
     localStorage.setItem("username", userName);
+
+    // If they log in, presumably we want to show the chat
+    setShowChat(true);
+    localStorage.setItem("showChat", "true");
   };
 
-  // Clear everything on logout
   const handleLogout = () => {
-    // Remove local data specific to the existing token
     if (token) {
       localStorage.removeItem(`conversations_${token}`);
     }
@@ -42,6 +44,21 @@ export function HeroRevealComponent() {
     setUsername("");
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+
+    // When logging out, we can go back to landing
+    setShowChat(false);
+    localStorage.setItem("showChat", "false");
+  };
+
+  // 2) Simple helper functions to toggle showChat
+  const openChat = () => {
+    setShowChat(true);
+    localStorage.setItem("showChat", "true");
+  };
+
+  const closeChat = () => {
+    setShowChat(false);
+    localStorage.setItem("showChat", "false");
   };
 
   return (
@@ -60,7 +77,7 @@ export function HeroRevealComponent() {
           )}
 
           <button
-            onClick={() => setShowChat(false)}
+            onClick={closeChat}
             className="absolute top-4 right-4 bg-gray-800 text-white p-1 md:p-2 rounded-lg group"
           >
             <X className="group-hover:rotate-12 transition duration-300" />
@@ -106,7 +123,7 @@ export function HeroRevealComponent() {
               <GlobalButton
                 text="Start Chat"
                 icon={ArrowRight}
-                onClick={() => setShowChat(true)} // Opens ChatLayout overlay
+                onClick={openChat} // Opens ChatLayout overlay
                 className="ml-8 md:ml-0 px-2 md:px-4 text-sm md:text-base"
               />
               <ChatCircleComponent />
