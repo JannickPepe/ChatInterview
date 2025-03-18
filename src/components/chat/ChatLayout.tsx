@@ -16,8 +16,13 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
   const [newMessage, setNewMessage] = useState("");
   const [newConversationName, setNewConversationName] = useState("");
 
-  // 1) Create a ref to store the interval ID so we can clear it later
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Polling interval ref
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // This ref is placed at the bottom of the message list
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const avatarInitials = userName
     .split(" ")
@@ -26,18 +31,23 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
     .substring(0, 2)
     .toUpperCase();
 
+  // Scroll to the bottom whenever conversation changes or spinner changes
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [currentConversation, isLoading]);
+
   useEffect(() => {
     if (!token) return;
     fetchConversationsFromServer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Helper to fetch from the server, then store in localStorage (optional)
   const fetchConversationsFromServer = () => {
     ChatService.getConversations(token)
       .then((data) => {
         setConversations(data);
-        // Optionally store them for fast re-load if same user logs out/in
         localStorage.setItem(`conversations_${token}`, JSON.stringify(data));
         if (data.length > 0) {
           setSelectedConversationId(data[0].id);
@@ -46,8 +56,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
       .catch((err) => console.error("Failed to fetch conversations", err));
   };
 
-  // Whenever the user selects a conversation, fetch its details
-  // Also clear any existing interval so we don't poll the old conversation
   useEffect(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -63,7 +71,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
     }
   }, [selectedConversationId, token]);
 
-  // Cleanup when component unmounts: clear any active interval
   useEffect(() => {
     return () => {
       if (pollingRef.current) {
@@ -90,11 +97,13 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId) return;
+
+    setIsLoading(true);
+
     try {
       await ChatService.sendMessage(token, selectedConversationId, newMessage);
       setNewMessage("");
 
-      // Fetch the conversation right after sending
       const updated = await ChatService.getConversation(token, selectedConversationId);
       setCurrentConversation(updated);
       setConversations((prev) => {
@@ -103,12 +112,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
         return newArr;
       });
 
-      // 2) Clear any existing interval so we don't double-poll
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
       }
 
-      // 3) Start a new interval to poll the conversation every 3 seconds
       pollingRef.current = setInterval(async () => {
         try {
           const updatedAgain = await ChatService.getConversation(
@@ -124,16 +131,20 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
             localStorage.setItem(`conversations_${token}`, JSON.stringify(newArr));
             return newArr;
           });
+
+          // Turn off spinner after we've fetched the new messages
+          setIsLoading(false);
+
         } catch (pollErr) {
           console.error("Polling error:", pollErr);
+          setIsLoading(false);
         }
       }, 3000);
-
     } catch (err) {
       console.error("Failed to send message", err);
+      setIsLoading(false);
     }
   };
-
 
   return (
     <div className="flex h-screen w-full antialiased text-gray-800">
@@ -152,7 +163,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
             <div className="text-xs md:text-sm font-semibold mt-2">{userName}</div>
             <p className="text-xs mt-2">{new Date().toLocaleDateString()}</p>
 
-            <button onClick={onLogout} className="mt-2 bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600">
+            <button
+              onClick={onLogout}
+              className="mt-2 bg-red-500 text-white px-2 py-1 text-xs rounded hover:bg-red-600"
+            >
               Log Out
             </button>
           </div>
@@ -244,6 +258,17 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                         );
                       })}
                     </div>
+
+                    {/* If we are waiting on a server response, show the spinner below the messages */}
+                    {isLoading && (
+                      <div className="text-center my-4">
+                        <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <p className="text-sm mt-1">Waiting for response...</p>
+                      </div>
+                    )}
+
+                    {/* This is the "anchor" – we always scroll to it */}
+                    <div ref={messagesEndRef} />
                   </div>
                 </div>
 
@@ -259,8 +284,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ userToken, userName, onLogout }
                         onChange={(e) => setNewMessage(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            e.preventDefault();      
-                            handleSendMessage();  
+                            e.preventDefault();
+                            handleSendMessage();
                           }
                         }}
                       />
