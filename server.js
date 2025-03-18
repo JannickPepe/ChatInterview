@@ -16,6 +16,130 @@ app.use((req, res, next) => {
 // Parse JSON bodies
 app.use(express.json({ type: "application/vnd.api+json" }));
 
+// DELETE /conversations/:id
+app.delete("/conversations/:id", (req, res) => {
+  try {
+    validateRequest(req, res);
+    const user = authorize(req, res);
+    if (!user) return;
+
+    const { id } = req.params;
+    const index = store.conversations.findIndex((c) => c.id === id);
+
+    if (index === -1) {
+      return res.status(404).json({
+        errors: [
+          {
+            status: "404",
+            title: "Not Found",
+            detail: "Conversation not found",
+          },
+        ],
+      });
+    }
+
+    // Check ownership
+    if (store.conversations[index].author !== user.id) {
+      return res.status(403).json({
+        errors: [
+          {
+            status: "403",
+            title: "Forbidden",
+            detail: "You do not have access to this conversation",
+          },
+        ],
+      });
+    }
+
+    // Remove it from the array
+    store.conversations.splice(index, 1);
+
+    // Return 204 (No Content) on successful delete
+    return res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      errors: [
+        {
+          status: "500",
+          title: "Internal Server Error",
+          detail: "An unexpected error occurred",
+        },
+      ],
+    });
+  }
+});
+
+// PATCH /conversations/:id
+app.patch("/conversations/:id", (req, res) => {
+  try {
+    validateRequest(req, res);
+    const user = authorize(req, res);
+    if (!user) return;
+
+    const { id } = req.params;
+    const conversation = store.conversations.find((c) => c.id === id);
+
+    if (!conversation) {
+      return res.status(404).json({
+        errors: [
+          {
+            status: "404",
+            title: "Not Found",
+            detail: "Conversation not found",
+          },
+        ],
+      });
+    }
+
+    if (conversation.author !== user.id) {
+      return res.status(403).json({
+        errors: [
+          {
+            status: "403",
+            title: "Forbidden",
+            detail: "You do not have access to this conversation",
+          },
+        ],
+      });
+    }
+
+    // Parse incoming data
+    const { data } = req.body;
+    // e.g. data.attributes.archived = true/false
+    const { archived } = data.attributes;
+
+    // Update conversation
+    conversation.archived = archived;
+
+    // Return updated conversation
+    return res.status(200).json({
+      data: {
+        type: "conversations",
+        id: conversation.id,
+        attributes: {
+          name: conversation.name,
+          author: conversation.author,
+          archived: conversation.archived,
+          messages: conversation.messages,
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      errors: [
+        {
+          status: "500",
+          title: "Internal Server Error",
+          detail: "An unexpected error occurred",
+        },
+      ],
+    });
+  }
+});
+
+
 // Global data store (renamed from "data" to "store" to avoid conflicts)
 const store = {
   conversations: [
@@ -29,7 +153,8 @@ const store = {
           text: "Hello, World!",
           author: "c89ee220-37fc-4781-ae07-24fcaf91281a"
         }
-      ]
+      ],
+      archived: false,
     },
     {
       id: "c6b3b2c2-2f7f-4d3e-8b0e-1b5d0b7b3f8d",
@@ -41,7 +166,8 @@ const store = {
           text: "Hi, there!",
           author: "AI",
         }
-      ]
+      ],
+      archived: false,
     }
   ],
   users: [
@@ -124,7 +250,8 @@ function formatConversation(conversation) {
     attributes: {
       name: conversation.name,
       author: conversation.author,
-      messages: conversation.messages
+      messages: conversation.messages,
+      archived: conversation.archived || false, // include archived status
     }
   };
 }

@@ -136,6 +136,50 @@ const ChatService = {
     const json = await fetchJsonApi<SendMessageResponse>(url, "POST", token, body);
     return json.data;
   },
+
+  // Delete a conversation
+async deleteConversation(token: string, convId: string) {
+  const url = `${this.baseUrl}/conversations/${convId}`;
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/vnd.api+json",
+      Accept: "application/vnd.api+json",
+      Authorization: token,
+    },
+  });
+  if (!response.ok && response.status !== 204) {
+    throw new Error("Failed to delete conversation");
+  }
+},
+
+// Patch a conversation (e.g. archived: true/false)
+async updateConversation(token: string, convId: string, patchData: any) {
+  const url = `${this.baseUrl}/conversations/${convId}`;
+  const body = {
+    data: {
+      type: "conversations",
+      id: convId,
+      attributes: patchData, // e.g. { archived: true }
+    },
+  };
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/vnd.api+json",
+      Accept: "application/vnd.api+json",
+      Authorization: token,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const errMsg = await response.text();
+    throw new Error(`Failed to patch conversation: ${errMsg}`);
+  }
+  const json = await response.json();
+  // Return the updated conversation object in JSON:API format
+  return json.data;
+}
 };
 
 export default ChatService;

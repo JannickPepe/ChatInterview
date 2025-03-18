@@ -97,7 +97,7 @@ export function HeroRevealComponent() {
 
           <BoxReveal boxColor={"#5046e6"} duration={0.5}>
             <h2 className="mt-[.5rem] text-[1rem] pl-14 md:pl-6 lg:pl-0">
-              Made by <span className="text-sky-700">Klaay ApS</span>
+              Made by <span className="text-sky-700">NighteCoding</span>
             </h2>
           </BoxReveal>
 
